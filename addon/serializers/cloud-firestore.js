@@ -19,15 +19,15 @@ export default JSONSerializer.extend({
    * @type {Ember.Service}
    */
   firebase: inject(),
-  
+
   buildCollectionName(modelName) {
     return buildCollectionName(modelName);
   },
-  
+
   // getNamespace(snapshot) {
   //   return null;
   // },
-  
+
   /**
    * Overriden to properly get the data of a `Reference` type relationship
    *
@@ -42,7 +42,7 @@ export default JSONSerializer.extend({
       return {
         id: belongsToId,
         type: relationshipModelName,
-        data: { docRef: relationshipHash }
+        data: { docRef: relationshipHash },
       };
     }
 
@@ -61,7 +61,7 @@ export default JSONSerializer.extend({
     modelClass.eachRelationship((name, relationship) => {
       if (relationship.kind === 'belongsTo') {
         const key = this.keyForRelationship(name, 'belongsTo', 'serialize');
-        
+
         if (
           Object.prototype.hasOwnProperty.call(resourceHash, key)
           && typeOf(resourceHash[key]) === 'object'
@@ -72,24 +72,26 @@ export default JSONSerializer.extend({
           links[name] = path;
         }
       } else {
-        const key = this.keyForRelationship(name, 'hasMany', 'serialize');
-        let hasManyPath;
-        
-        if (relationship.meta.options.isReference) {
-          return;
-        } else {
-          const cardinality = modelClass.determineRelationshipType(relationship, this.get('store'));
+        if (relationship.meta.options.isReference) return;
 
-          if (cardinality === 'manyToOne') {
-            resourceHash.modelName = modelClass.modelName;
-            const collectionName = this.buildCollectionName(modelClass.modelName, resourceHash, relationship.meta);
-            // hasManyPath = pluralize(relationship.type);
-            hasManyPath = collectionName;
-          } else {
-            const collectionName = this.buildCollectionName(modelClass.modelName);
-            const docId = resourceHash.id;
-            hasManyPath = [collectionName, docId, name].compact().join('/');
-          }
+        let hasManyPath;
+        const cardinality = modelClass.determineRelationshipType(relationship, this.get('store'));
+
+        if (cardinality === 'manyToOne') {
+          resourceHash.modelName = modelClass.modelName;
+
+          const collectionName = this.buildCollectionName(
+            modelClass.modelName,
+            resourceHash,
+            relationship.meta,
+          );
+
+          hasManyPath = collectionName;
+        } else {
+          const parentRefPath = this.buildCollectionName(modelClass.modelName);
+          const docId = resourceHash.id;
+          const collectionName = pluralize(relationship.type);
+          hasManyPath = [parentRefPath, docId, collectionName].compact().join('/');
         }
 
         links[name] = hasManyPath;
@@ -106,15 +108,18 @@ export default JSONSerializer.extend({
    */
   serializeBelongsTo(snapshot, json, relationship) {
     this._super(snapshot, json, relationship);
-    
+
     const key = this.keyForRelationship(relationship.key, 'belongsTo', 'serialize');
-    
+
     if (json[key]) {
-      const collectionName = this.buildCollectionName(relationship.type, snapshot, relationship.meta);
-      // const namespace = this.getNamespace(snapshot, collectionName);
+      const collectionName = this.buildCollectionName(
+        relationship.type,
+        snapshot,
+        relationship.meta,
+      );
+
       const docId = json[key];
       const path = [collectionName, docId].compact().join('/');
-      // const path = [namespace, collectionName, docId].compact().join('/');
 
       if (this.getAdapterOptionAttribute(snapshot, 'onServer')) {
         json[key] = path;
@@ -129,17 +134,20 @@ export default JSONSerializer.extend({
    */
   serializeHasMany(snapshot, json, relationship) {
     this._super(snapshot, json, relationship);
-    
+
     const key = this.keyForRelationship(relationship.key, 'hasMany', 'serialize');
 
     if (json[key]) {
       const references = [];
 
       json[key].forEach((id) => {
-        const collectionName = this.buildCollectionName(relationship.type, snapshot, relationship.meta);
-        // const namespace = this.getNamespace(snapshot, collectionName);
+        const collectionName = this.buildCollectionName(
+          relationship.type,
+          snapshot,
+          relationship.meta,
+        );
+
         const path = [collectionName, id].compact().join('/');
-        // const path = [namespace, collectionName, id].compact().join('/');
 
         if (this.getAdapterOptionAttribute(snapshot, 'onServer')) {
           references.push(path);
