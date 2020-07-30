@@ -1,5 +1,4 @@
 import { inject } from '@ember/service';
-import { pluralize } from 'ember-inflector';
 import { typeOf } from '@ember/utils';
 import JSONSerializer from 'ember-data/serializers/json';
 
@@ -8,6 +7,14 @@ import {
   buildPathFromRef,
   buildRefFromPath,
 } from 'ember-cloud-firestore-adapter/utils/parser';
+
+/**
+ * @param {*} value
+ * @return {boolean} True if is a document reference. Otherwise, false.
+ */
+function isDocumentReference(value) {
+  return typeOf(value) === 'object' && value.firestore;
+}
 
 /**
  * @class CloudFirestore
@@ -29,12 +36,12 @@ export default JSONSerializer.extend({
   // },
 
   /**
-   * Overriden to properly get the data of a `Reference` type relationship
+   * Overriden to convert a DocumentReference into an JSON API relationship object
    *
    * @override
    */
   extractRelationship(relationshipModelName, relationshipHash) {
-    if (typeOf(relationshipHash) === 'object' && relationshipHash.firestore) {
+    if (isDocumentReference(relationshipHash)) {
       const path = buildPathFromRef(relationshipHash);
       const pathNodes = path.split('/');
       const belongsToId = pathNodes[pathNodes.length - 1];
@@ -42,54 +49,51 @@ export default JSONSerializer.extend({
       return {
         id: belongsToId,
         type: relationshipModelName,
-        data: { docRef: relationshipHash }
+        data: { docRef: relationshipHash },
       };
     }
 
-    return this._super(...arguments);
+    return this._super(relationshipModelName, relationshipHash);
   },
 
   /**
-   * Extended to add links for a relationship that's derived from its
-   * `Reference` value
+   * Extended to add links for all relationship
    *
    * @override
    */
   extractRelationships(modelClass, resourceHash) {
     const links = {};
 
-    modelClass.eachRelationship((name, relationship) => {
-      if (relationship.kind === 'belongsTo') {
+    modelClass.eachRelationship((name, descriptor) => {
+      if (descriptor.kind === 'belongsTo') {
         const key = this.keyForRelationship(name, 'belongsTo', 'serialize');
 
         if (
-          Object.prototype.hasOwnProperty.call(resourceHash, key)
-          && typeOf(resourceHash[key]) === 'object'
-          && resourceHash[key].firestore
+          Object.prototype.hasOwnProperty.call(resourceHash, name)
+          && isDocumentReference(resourceHash[name])
         ) {
           const path = buildPathFromRef(resourceHash[key]);
 
           links[name] = path;
         }
       } else {
-        const key = this.keyForRelationship(name, 'hasMany', 'serialize');
+        const cardinality = modelClass.determineRelationshipType(descriptor, this.store);
         let hasManyPath;
 
-        if (relationship.meta.options.isReference) {
+        if (descriptor.meta.options.isReference) {
           return;
+        } else if (cardinality === 'manyToOne') {
+          resourceHash.modelName = modelClass.modelName;
+          const collectionName = this.buildCollectionName(
+            modelClass.modelName,
+            resourceHash,
+            descriptor.meta,
+          );
+          hasManyPath = collectionName;
         } else {
-          const cardinality = modelClass.determineRelationshipType(relationship, this.get('store'));
-
-          if (cardinality === 'manyToOne') {
-            resourceHash.modelName = modelClass.modelName;
-            const collectionName = this.buildCollectionName(modelClass.modelName, resourceHash, relationship.meta);
-            // hasManyPath = pluralize(relationship.type);
-            hasManyPath = collectionName;
-          } else {
-            const collectionName = this.buildCollectionName(modelClass.modelName);
-            const docId = resourceHash.id;
-            hasManyPath = [collectionName, docId, name].compact().join('/');
-          }
+          const collectionName = this.buildCollectionName(modelClass.modelName);
+          const docId = resourceHash.id;
+          hasManyPath = [collectionName, docId, name].compact().join('/');
         }
 
         links[name] = hasManyPath;
@@ -102,25 +106,26 @@ export default JSONSerializer.extend({
   },
 
   /**
+   * Overriden to convert a belongs-to relationship to a DocumentReference
+   *
    * @override
    */
   serializeBelongsTo(snapshot, json, relationship) {
     this._super(snapshot, json, relationship);
 
-    const key = this.keyForRelationship(relationship.key, 'belongsTo', 'serialize');
+    const { key } = relationship;
 
     if (json[key]) {
-      const collectionName = this.buildCollectionName(relationship.type, snapshot, relationship.meta);
-      // const namespace = this.getNamespace(snapshot, collectionName);
-      const docId = json[key];
-      const path = [collectionName, docId].compact().join('/');
-      // const path = [namespace, collectionName, docId].compact().join('/');
+      const collectionName = this.buildCollectionName(
+        relationship.type,
+        snapshot,
+        relationship.meta,
+      );
 
-      if (this.getAdapterOptionAttribute(snapshot, 'onServer')) {
-        json[key] = path;
-      } else {
-        json[key] = buildRefFromPath(this.get('firebase').firestore(), path);
-      }
+      const docId = json[key];
+      const path = `${collectionName}/${docId}`;
+
+      json[key] = buildRefFromPath(this.firebase.firestore(), path);
     }
   },
 
@@ -130,22 +135,21 @@ export default JSONSerializer.extend({
   serializeHasMany(snapshot, json, relationship) {
     this._super(snapshot, json, relationship);
 
-    const key = this.keyForRelationship(relationship.key, 'hasMany', 'serialize');
+    const { key } = relationship;
 
     if (json[key]) {
       const references = [];
 
-      json[key].forEach((id) => {
-        const collectionName = this.buildCollectionName(relationship.type, snapshot, relationship.meta);
-        // const namespace = this.getNamespace(snapshot, collectionName);
-        const path = [collectionName, id].compact().join('/');
-        // const path = [namespace, collectionName, id].compact().join('/');
+      json[key].forEach((docId) => {
+        const collectionName = this.buildCollectionName(
+          relationship.type,
+          snapshot,
+          relationship.meta,
+        );
 
-        if (this.getAdapterOptionAttribute(snapshot, 'onServer')) {
-          references.push(path);
-        } else {
-          references.push(buildRefFromPath(this.get('firebase').firestore(), path));
-        }
+        const path = `${collectionName}/${docId}`;
+
+        references.push(buildRefFromPath(this.get('firebase').firestore(), path));
       });
 
       delete json[key];
@@ -168,23 +172,5 @@ export default JSONSerializer.extend({
     });
 
     return json;
-  },
-
-  /**
-   * @param {Object} snapshot
-   * @param {string} key
-   * @return {*} Attribute value
-   * @function
-   * @private
-   */
-  getAdapterOptionAttribute(snapshot, key) {
-    if (
-      snapshot.adapterOptions
-      && Object.prototype.hasOwnProperty.call(snapshot.adapterOptions, key)
-    ) {
-      return snapshot.adapterOptions[key];
-    }
-
-    return null;
   },
 });

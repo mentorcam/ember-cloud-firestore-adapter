@@ -1,53 +1,62 @@
+/* eslint global-require: off */
+
+'use strict';
+
 module.exports = {
   root: true,
   parserOptions: {
-    ecmaVersion: 2017,
-    sourceType: 'module'
+    ecmaVersion: 2018,
+    sourceType: 'module',
   },
   plugins: [
-    'ember'
+    'ember',
   ],
   extends: [
     'eslint:recommended',
     'plugin:ember/recommended',
     'airbnb-base',
     'rmmmp/base',
-    'rmmmp/ember'
+    'rmmmp/ember',
   ],
   env: {
-    browser: true
+    browser: true,
+  },
+  globals: {
+    FastBoot: 'readonly',
   },
   rules: {
-    'no-param-reassign': ['error', { 'props': false }]
+    'no-param-reassign': ['error', { props: false }],
   },
   overrides: [
     // node files
     {
       files: [
+        '.eslintrc.js',
+        '.template-lintrc.js',
         'ember-cli-build.js',
         'index.js',
         'testem.js',
         'blueprints/*/index.js',
         'config/**/*.js',
-        'tests/dummy/config/**/*.js'
+        'tests/dummy/config/**/*.js',
       ],
       excludedFiles: [
-        'app/**',
         'addon/**',
-        'tests/dummy/app/**'
+        'addon-test-support/**',
+        'app/**',
+        'tests/dummy/app/**',
       ],
       parserOptions: {
         sourceType: 'script',
-        ecmaVersion: 2015
       },
       env: {
         browser: false,
-        node: true
+        node: true,
       },
       plugins: ['node'],
       rules: Object.assign({}, require('eslint-plugin-node').configs.recommended.rules, {
         // add your custom rules and overrides for node files here
-      })
-    }
-  ]
+      }),
+    },
+  ],
 };

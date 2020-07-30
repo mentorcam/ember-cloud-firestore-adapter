@@ -1,97 +1,119 @@
-import { test } from 'qunit';
-import moduleForAcceptance from '../../tests/helpers/module-for-acceptance';
+import { click, visit, waitFor } from '@ember/test-helpers';
+import { module, test } from 'qunit';
+import { setupApplicationTest } from 'ember-qunit';
 
-moduleForAcceptance('Acceptance | features');
+import { mockFirebase } from 'ember-cloud-firestore-adapter/test-support';
+import getFixtureData from '../helpers/fixture-data';
 
-test('should create record', async function (assert) {
-  assert.expect(3);
+module('Acceptance | features', function (hooks) {
+  setupApplicationTest(hooks);
 
-  // Arrange
-  await visit('/features');
+  hooks.beforeEach(function () {
+    mockFirebase(this.owner, getFixtureData());
+  });
 
-  // Act
-  await click('[data-test-button="create-record"]');
+  test('should create record', async function (assert) {
+    assert.expect(3);
 
-  // Assert
-  assert.dom('[data-test-id="new"]').hasText('new');
-  assert.dom('[data-test-username="new"]').hasText('new_user');
-  assert.dom('[data-test-age="new"]').hasText('25');
-});
+    // Arrange
+    await visit('/features');
 
-test('should update record', async function (assert) {
-  assert.expect(1);
+    // Act
+    await click('[data-test-button="create-record"]');
 
-  // Arrange
-  await visit('/features');
+    // Assert
+    await waitFor('[data-test-id]'); // FIXME: Shouldn't be necessary
+    assert.dom('[data-test-id="new"]').hasText('new');
+    assert.dom('[data-test-username="new"]').hasText('new_user');
+    assert.dom('[data-test-age="new"]').hasText('25');
+  });
 
-  // Act
-  await click('[data-test-button="update-record"]');
+  test('should update record', async function (assert) {
+    assert.expect(1);
 
-  // Assert
-  assert.dom('[data-test-username="user_a"]').hasText('updated_user');
-});
+    // Arrange
+    await visit('/features');
 
-test('should delete record', async function (assert) {
-  assert.expect(1);
+    // Act
+    await click('[data-test-button="update-record"]');
 
-  // Arrange
-  await visit('/features');
+    // Assert
+    await waitFor('[data-test-username]'); // FIXME: Shouldn't be necessary
+    assert.dom('[data-test-username="user_a"]').hasText('updated_user');
+  });
 
-  // Act
-  await click('[data-test-button="delete-record"]');
+  test('should delete record', async function (assert) {
+    assert.expect(1);
 
-  // Assert
-  assert.dom('[data-test-id="user-a"]').doesNotExist();
-});
+    // Arrange
+    await visit('/features');
 
-test('should find all record', async function (assert) {
-  assert.expect(1);
+    // Act
+    await click('[data-test-button="delete-record"]');
 
-  // Arrange
-  await visit('/features');
+    // Assert
+    await waitFor('[data-test-id]'); // FIXME: Shouldn't be necessary
+    assert.dom('[data-test-id="user-a"]').doesNotExist();
+  });
 
-  // Act
-  await click('[data-test-button="find-all"]');
+  test('should find all record', async function (assert) {
+    assert.expect(1);
 
-  // Assert
-  assert.dom('[data-test-id]').exists({ count: 3 });
-});
+    // Arrange
+    await visit('/features');
 
-test('should find record', async function (assert) {
-  assert.expect(1);
+    // Act
+    await click('[data-test-button="find-all"]');
 
-  // Arrange
-  await visit('/features');
+    // Assert
+    await waitFor('[data-test-id]'); // FIXME: Shouldn't be necessary
+    assert.dom('[data-test-id]').exists({ count: 3 });
+  });
 
-  // Act
-  await click('[data-test-button="find-record"]');
+  test('should find record', async function (assert) {
+    assert.expect(1);
 
-  // Assert
-  assert.dom('[data-test-id="user_a"]').hasText('user_a');
-});
+    // Arrange
+    await visit('/features');
 
-test('should query', async function (assert) {
-  assert.expect(1);
+    // Act
+    await click('[data-test-button="find-record"]');
 
-  // Arrange
-  await visit('/features');
+    // Assert
+    await waitFor('[data-test-id]'); // FIXME: Shouldn't be necessary
+    assert.dom('[data-test-id="user_a"]').hasText('user_a');
+  });
 
-  // Act
-  await click('[data-test-button="query-1"]');
+  test('should query', async function (assert) {
+    assert.expect(1);
 
-  // Assert
-  assert.dom('[data-test-id]').exists({ count: 2 });
-});
+    // Arrange
+    await visit('/features');
 
-test('should return nothing when querying to a path that does not exist', async function (assert) {
-  assert.expect(1);
+    // Act
+    await click('[data-test-button="query-1"]');
 
-  // Arrange
-  await visit('/features');
+    // Assert
+    await waitFor('[data-test-id]'); // FIXME: Shouldn't be necessary
+    assert.dom('[data-test-id]').exists({ count: 2 });
+  });
 
-  // Act
-  await click('[data-test-button="query-2"]');
+  test('should return nothing when querying to a path that does not exist', async function (assert) {
+    assert.expect(1);
 
-  // Assert
-  assert.dom('[data-test-id]').doesNotExist();
+    // Arrange
+    await visit('/features');
+
+    // Act
+    await click('[data-test-button="query-2"]');
+
+    // Assert
+    try {
+      await waitFor('[data-test-id]', { timeout: 5000 }); // FIXME: Shouldn't be necessary
+    } catch (e) {
+      // Do nothing
+    }
+
+    assert.dom('[data-test-id]').doesNotExist();
+  });
 });

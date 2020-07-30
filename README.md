@@ -3,45 +3,40 @@ ember-cloud-firestore-adapter
 
 Unofficial Ember Data Adapter and Serializer for Cloud Firestore
 
+
+Compatibility
+------------------------------------------------------------------------------
+
+* Ember.js v3.4 or above
+* Ember CLI v2.13 or above
+* Node.js v8 or above
+
+
 Installation
 ------------------------------------------------------------------------------
 
+This addon requires some peer dependencies. Install the correct versions of each package, which are listed by the command:
+
 ```
-npm install firebase@5.x --save-dev
+npm info ember-cloud-firestore-adapter peerDependencies
+```
+
+Once you've installed it, you can now install the addon itself:
+
+```
 ember install ember-cloud-firestore-adapter
 ```
 
 Usage
 ------------------------------------------------------------------------------
 
-Checkout the guides [here](https://github.com/rmmmp/ember-cloud-firestore-adapter/tree/master/guides).
+Checkout the docs [here](https://mikkopaderes.github.io/ember-cloud-firestore-adapter).
 
 Contributing
 ------------------------------------------------------------------------------
 
-### Installation
+See the [Contributing](CONTRIBUTING.md) guide for details.
 
-* `git clone <repository-url>`
-* `cd ember-cloud-firestore-adapter`
-* `npm install`
-
-### Linting
-
-* `npm run lint:js`
-* `npm run lint:js -- --fix`
-
-### Running tests
-
-* `ember test` – Runs the test suite on the current Ember version
-* `ember test --server` – Runs the test suite in "watch mode"
-* `npm test` – Runs `ember try:each` to test your addon against multiple Ember versions
-
-### Running the dummy application
-
-* `ember serve`
-* Visit the dummy application at [http://localhost:4200](http://localhost:4200).
-
-For more information on using ember-cli, visit [https://ember-cli.com/](https://ember-cli.com/).
 
 License
 ------------------------------------------------------------------------------
