@@ -187,7 +187,7 @@ export default Adapter.extend({
         } else if (docSnapshot.metadata && docSnapshot.metadata.fromCache) {
           reject(new Error('Connection to Firestore unavailable'));
         } else {
-          reject(new Error(`Record ${id} for model type ${type.modelName} doesn't exist`));
+          reject(new Error(`Document doesn't exist: Record ${id} for model type ${type.modelName}`));
         }
 
         unsubscribe();

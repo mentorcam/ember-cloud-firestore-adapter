@@ -49,7 +49,7 @@ export default JSONSerializer.extend({
       return {
         id: belongsToId,
         type: relationshipModelName,
-        data: { docRef: relationshipHash },
+        attributes: { _docRef: relationshipHash },
       };
     }
 
@@ -80,9 +80,10 @@ export default JSONSerializer.extend({
         const cardinality = modelClass.determineRelationshipType(descriptor, this.store);
         let hasManyPath;
 
-        if (descriptor.meta.options.isReference) {
-          return;
-        } else if (cardinality === 'manyToOne') {
+        // if (descriptor.meta.options.isReference) {
+        //   return;
+        // } else
+        if (descriptor.meta.options.isReference || ['manyToOne'].includes(cardinality)) {
           resourceHash.modelName = modelClass.modelName;
           const collectionName = this.buildCollectionName(
             modelClass.modelName,

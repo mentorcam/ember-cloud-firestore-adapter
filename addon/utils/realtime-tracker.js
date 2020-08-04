@@ -29,8 +29,10 @@ export default class RealtimeTracker {
     if (!this.isRecordForTypeTracked(modelName, id)) {
       this.trackModel(modelName);
 
+      let trackedState = this.model[modelName].record[id];
+
       docRef.onSnapshot((docSnapshot) => {
-        if (this.model[modelName].record[id].hasOnSnapshotRunAtLeastOnce) {
+        if (trackedState.hasOnSnapshotRunAtLeastOnce) {
           if (docSnapshot.exists) {
             const record = store.peekRecord(modelName, id);
 
@@ -49,7 +51,7 @@ export default class RealtimeTracker {
             this.unloadRecord(store, modelName, id);
           }
         } else {
-          this.model[modelName].record[id].hasOnSnapshotRunAtLeastOnce = true;
+          trackedState.hasOnSnapshotRunAtLeastOnce = true;
         }
       }, (error) => {
         const record = store.peekRecord(modelName, id);
@@ -68,7 +70,7 @@ export default class RealtimeTracker {
         delete this.model[modelName].record[id];
       });
 
-      this.model[modelName].record[id] = { hasOnSnapshotRunAtLeastOnce: false };
+      trackedState = { hasOnSnapshotRunAtLeastOnce: true };
     }
   }
 
@@ -97,7 +99,7 @@ export default class RealtimeTracker {
       });
 
       this.model[modelName].meta.isAllRecordsTracked = true;
-      this.model[modelName].meta.hasOnSnapshotRunAtLeastOnce = false;
+      this.model[modelName].meta.hasOnSnapshotRunAtLeastOnce = true;
     }
   }
 
@@ -106,9 +108,10 @@ export default class RealtimeTracker {
    * @param {string} id
    * @param {Object} relationship
    * @param {firebase.firestore.CollectionReference} collectionRef
+   * @param {DS.Store} store
    * @function
    */
-  trackFindHasManyChanges(modelName, id, relationship, collectionRef) {
+  trackFindHasManyChanges(modelName, id, relationship, collectionRef, store) {
     const { type, key: field } = relationship;
     const queryId = `${modelName}_${id}_${field}`;
 
@@ -122,11 +125,11 @@ export default class RealtimeTracker {
         // in the find record tracker because it was deleted in the database. Basically, we should
         // unload any deleted records first before refreshing the has-many array.
         next(() => {
-          const processedChanges = this._handleDocChanges(type, querySnapshot);
+          const processedChanges = this._handleDocChanges(type, querySnapshot, store);
           const { changedRecords, promises } = processedChanges;
 
           Promise.all(promises).then((updatedRecords) => {
-            const record = this.peekRecord(modelName, id);
+            const record = store.peekRecord(modelName, id);
             if (!record) return;
 
             const currentRecords = get(record, field);
@@ -149,18 +152,19 @@ export default class RealtimeTracker {
       }
     }, () => delete this.query[queryId]);
 
-    this.query[queryId].hasOnSnapshotRunAtLeastOnce = false;
+    this.query[queryId].hasOnSnapshotRunAtLeastOnce = true;
     this.query[queryId].unsubscribe = unsubscribe;
   }
 
+  /* eslint-disable class-methods-use-this */
   // eslint-disable-next-line valid-jsdoc
   /**
    * @param {Object} type
    * @param {Object} querySnapshot
+   * @param {DS.Store} store
    * @function
-   * @returns
    */
-  _handleDocChanges(type, querySnapshot) {
+  _handleDocChanges(type, querySnapshot, store) {
     const promises = [];
     const changedRecords = [];
     const involvedChangeTypes = [];
@@ -168,8 +172,9 @@ export default class RealtimeTracker {
 
     if (environment === 'test') {
       querySnapshot.forEach((docSnapshot) => {
-        promises.push(this.findRecord(type, docSnapshot.id, {
+        promises.push(store.findRecord(type, docSnapshot.id, {
           adapterOptions: {
+            isRealtime: true,
             docRef: docSnapshot.ref,
           },
         }));
@@ -185,8 +190,9 @@ export default class RealtimeTracker {
         const { type: changeType, doc: docSnapshot } = change;
 
         if (changeType === 'added' || changeType === 'modified') {
-          promises.push(this.findRecord(type, docSnapshot.id, {
+          promises.push(store.findRecord(type, docSnapshot.id, {
             adapterOptions: {
+              isRealtime: true,
               docRef: docSnapshot.ref,
             },
           }));
@@ -200,6 +206,7 @@ export default class RealtimeTracker {
 
     return { changedRecords, promises, involvedChangeTypes };
   }
+  /* eslint-disable class-methods-use-this */
 
   /**
    * @param {firebase.firestore.Query} firestoreQuery
@@ -227,7 +234,7 @@ export default class RealtimeTracker {
       }
     }, () => delete this.query[finalQueryId]);
 
-    this.query[finalQueryId].hasOnSnapshotRunAtLeastOnce = false;
+    this.query[finalQueryId].hasOnSnapshotRunAtLeastOnce = true;
     this.query[finalQueryId].unsubscribe = unsubscribe;
   }
 
