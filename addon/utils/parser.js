@@ -72,7 +72,7 @@ export function parseDocSnapshot(type, docSnapshot) {
  * @function
  */
 export function buildCollectionName(name) {
-  return camelize(pluralize(name));
+  return pluralize(name);
 }
 
 /**
