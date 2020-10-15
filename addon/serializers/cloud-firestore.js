@@ -74,7 +74,6 @@ export default JSONSerializer.extend({
       } else {
         const key = this.keyForRelationship(name, 'hasMany', 'serialize');
         let hasManyPath;
-
         if (relationship.meta.options.isReference) {
           return;
         } else {
