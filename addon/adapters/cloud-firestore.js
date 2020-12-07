@@ -102,13 +102,13 @@ export default RESTAdapter.extend({
       snapshot.adapterOptions = { isCreate: true };
     }
 
-    return this.updateRecord(store, type, snapshot);
+    return this.updateRecord(store, type, snapshot, true);
   },
 
   /**
    * @override
    */
-  updateRecord(store, type, snapshot) {
+  updateRecord(store, type, snapshot, isNew) {
     const config = getOwner(this).resolveRegistration('config:environment');
     let onServer = this.getAdapterOptionAttribute(snapshot, 'onServer');
 
@@ -125,7 +125,7 @@ export default RESTAdapter.extend({
 
     return new Promise((resolve, reject) => {
       const docRef = this.buildUpdateRecordDocRef(type, snapshot);
-      const batch = this.buildWriteBatch(type, snapshot, docRef, false);
+      const batch = this.buildWriteBatch(type, snapshot, docRef, false, isNew);
 
       const batches = {
         queue: [],
@@ -430,15 +430,17 @@ export default RESTAdapter.extend({
    * @function
    * @private
    */
-  buildWriteBatch(type, snapshot, docRef, isDeletingMainDoc) {
+  buildWriteBatch(type, snapshot, docRef, isDeletingMainDoc, isNew) {
     const db = this.get('firebase').firestore();
     const payload = this.serialize(snapshot);
     const batch = db.batch();
 
     if (isDeletingMainDoc) {
       batch.delete(docRef);
-    } else {
+    } else if (isNew) {
       batch.set(docRef, payload, { merge: true });
+    } else {
+      batch.update(docRef, payload);
     }
 
     this.addIncludesToBatch(batch, db, snapshot);
