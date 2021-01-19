@@ -122,7 +122,7 @@ export default RESTAdapter.extend({
     if (onServer) {
       return this._super(store, type, snapshot);
     }
-
+    
     return new Promise((resolve, reject) => {
       const docRef = this.buildUpdateRecordDocRef(type, snapshot);
       const batch = this.buildWriteBatch(type, snapshot, docRef, false, isNew);

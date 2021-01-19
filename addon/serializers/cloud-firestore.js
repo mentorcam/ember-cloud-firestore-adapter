@@ -159,13 +159,22 @@ export default JSONSerializer.extend({
   serialize(snapshot, ...args) {
     const json = this._super(snapshot, ...args);
 
+    snapshot.eachAttribute((key, attribute) => {
+      if (attribute.options.serialize === false) {
+        delete json[key];
+      }
+    });
+
     snapshot.eachRelationship((name, relationship) => {
       // We want to save hasMany references as well with the model
       if (relationship.kind === 'hasMany' && !relationship.options.isReference) {
         delete json[name];
       }
+      if (relationship.options.serialize === false) {
+        delete json[name];
+      }
     });
-
+    
     return json;
   },
 
