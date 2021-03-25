@@ -130,8 +130,10 @@ function reopenStore(appInstance) {
 
           queryTracker.unsubscribe();
 
-          if (!queryTracker.recordArray.get('isUpdating')) {
-            queryTracker.recordArray = null;
+          if (queryTracker.recordArray) {
+            if (!queryTracker.recordArray.get('isUpdating')) {
+              queryTracker.recordArray = null;
+            }
           }
         } else {
           this.trackQueryListener(option.queryId);
