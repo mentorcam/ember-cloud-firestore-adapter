@@ -11,6 +11,11 @@ npm install firebase@5.x --save-dev
 ember install ember-cloud-firestore-adapter
 ```
 
+### Requirements
+
+* [Watchman](https://facebook.github.io/watchman/)
+* [Yarn](https://yarnpkg.com/)
+
 Usage
 ------------------------------------------------------------------------------
 
