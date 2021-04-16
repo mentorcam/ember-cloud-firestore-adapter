@@ -163,6 +163,9 @@ export default JSONSerializer.extend({
       if (attribute.options.serialize === false) {
         delete json[key];
       }
+      if (json[key] === null) {
+        delete json[key];
+      }
     });
 
     snapshot.eachRelationship((name, relationship) => {
@@ -174,7 +177,7 @@ export default JSONSerializer.extend({
         delete json[name];
       }
     });
-    
+
     return json;
   },
 
