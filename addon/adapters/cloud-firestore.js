@@ -247,7 +247,7 @@ export default RESTAdapter.extend({
         } else if (docSnapshot.metadata && docSnapshot.metadata.fromCache) {
           run(null, reject, new Error('Connection to Firestore unavailable'));
         } else {
-          run(null, reject, new Error('Document doesn\'t exist'));
+          run(null, reject, new Error('Document doesn\'t exist with ' + type + ' ' + id));
         }
 
         unsubscribe();
