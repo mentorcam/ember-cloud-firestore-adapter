@@ -176,8 +176,11 @@ export default JSONSerializer.extend({
       if (relationship.options.serialize === false) {
         delete json[name];
       }
+      if (json[name] === null) {
+        delete json[name];
+      }
     });
-
+    console.log(json);
     return json;
   },
 
